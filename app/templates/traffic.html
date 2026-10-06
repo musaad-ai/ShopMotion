@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="sm-card mb-4 py-3">
+  <div class="d-flex flex-wrap align-items-center gap-3">
+    <div class="d-flex flex-wrap gap-2 period-group" id="periodGroup">
+      <button class="btn btn-outline-primary active" data-period="today">Today</button>
+      <button class="btn btn-outline-primary" data-period="week">This Week</button>
+      <button class="btn btn-outline-primary" data-period="month">This Month</button>
+      <button class="btn btn-outline-primary" data-period="year">This Year</button>
+    </div>
+    <form class="d-flex align-items-center gap-2 ms-lg-auto" id="rangeForm">
+      <input type="date" class="form-control" id="rangeStart" required>
+      <span>to</span>
+      <input type="date" class="form-control" id="rangeEnd" required>
+      <button class="btn btn-gradient text-nowrap"><i class="fa-solid fa-magnifying-glass me-1"></i> Apply</button>
+    </form>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    {% with accent="primary", icon="fa-users", value="—", value_id="kTotal", label="Total Visitors", delta_id="kTotalDelta" %}{% include "partials/stat_card.html" %}{% endwith %}
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    {% with accent="success", icon="fa-chart-line", value="—", value_id="kPerHour", label="Avg. per Hour", delta_id="kPerHourDelta" %}{% include "partials/stat_card.html" %}{% endwith %}
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    {% with accent="warning", icon="fa-clock", value="—", value_id="kPeak", label="Peak Hour", delta_html='<i class="fa-solid fa-fire"></i> Busiest time' %}{% include "partials/stat_card.html" %}{% endwith %}
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    {% with accent="info", icon="fa-door-open", value="—", value_id="kEntry", label="Zone Entry Rate", delta_html='<i class="fa-solid fa-store"></i> Visitors who entered a zone' %}{% include "partials/stat_card.html" %}{% endwith %}
+  </div>
+</div>
+
+<div class="sm-card mb-4">
+  <div class="sm-card-title"><i class="fa-solid fa-chart-area"></i> Traffic Trend
+    <div class="actions"><button class="btn btn-sm btn-outline-primary" id="exportBtn"><i class="fa-solid fa-download me-1"></i> Export</button></div>
+  </div>
+  <div class="chart-box tall"><canvas id="trendChart"></canvas></div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-6">
+    <div class="sm-card">
+      <div class="sm-card-title"><i class="fa-solid fa-clock"></i> Hourly Distribution</div>
+      <div class="chart-box"><canvas id="hourlyChart"></canvas></div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="sm-card">
+      <div class="sm-card-title"><i class="fa-solid fa-calendar-week"></i> Weekly Pattern</div>
+      <div class="chart-box"><canvas id="weeklyChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-7">
+    <div class="sm-card">
+      <div class="sm-card-title"><i class="fa-solid fa-right-left"></i> Period Comparison</div>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead class="table-light"><tr><th>Metric</th><th>Current Period</th><th>Previous Period</th><th>Change</th></tr></thead>
+          <tbody id="comparisonBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-5">
+    <div class="sm-card insights-card">
+      <div class="sm-card-title border-0"><i class="fa-solid fa-lightbulb"></i> Key Insights</div>
+      <div id="insights"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/traffic.js') }}"></script>{% endblock %}

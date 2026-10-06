@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Local config & runtime data
+.env
+instance/
+*.db
+*.sqlite3
+recordings/
+snapshots/
+logs/
+
+# Model weights (downloaded automatically by Ultralytics)
+*.pt
+*.onnx
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

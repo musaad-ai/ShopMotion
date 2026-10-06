@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% macro kpi_table(kpis) -%}
+<table class="table table-sm mb-0">
+  {% for key, value in kpis.items() %}
+  <tr><th class="text-muted fw-normal">{{ key.replace('_', ' ')|title }}</th><td class="fw-bold text-end">{{ value if value is not none else '—' }}</td></tr>
+  {% endfor %}
+</table>
+{%- endmacro %}
+
+{% macro section(name, d) -%}
+  {% if name == 'traffic' %}
+  <div class="row g-4 mb-4">
+    <div class="col-lg-4"><div class="sm-card"><div class="sm-card-title"><i class="fa-solid fa-users"></i> Traffic KPIs</div>{{ kpi_table(d.kpis) }}</div></div>
+    <div class="col-lg-8"><div class="sm-card"><div class="sm-card-title"><i class="fa-solid fa-chart-area"></i> Traffic Trend</div>
+      <div class="chart-box"><canvas data-chart="line" data-series='{{ d.trend|tojson }}'></canvas></div></div></div>
+    <div class="col-lg-7"><div class="sm-card"><div class="sm-card-title"><i class="fa-solid fa-right-left"></i> Period Comparison</div>
+      <table class="table mb-0"><thead><tr><th>Metric</th><th>Current</th><th>Previous</th><th>Change</th></tr></thead><tbody>
+      {% for r in d.comparison %}<tr><td>{{ r.metric }}</td><td>{{ r.current }}</td><td>{{ r.previous }}</td>
+        <td>{% if r.change is not none %}<span class="change-pill {{ 'up' if r.change >= 0 else 'down' }}">{{ '%+.1f'|format(r.change) }}%</span>{% else %}—{% endif %}</td></tr>{% endfor %}
+      </tbody></table></div></div>
+    <div class="col-lg-5"><div class="sm-card insights-card"><div class="sm-card-title border-0"><i class="fa-solid fa-lightbulb"></i> Insights</div>
+      {% for i in d.insights %}<div class="insight"><div class="ic"><i class="fa-solid {{ i.icon }}"></i></div><div><div class="fw-bold">{{ i.title }}</div><div class="small">{{ i.text }}</div></div></div>{% endfor %}
+    </div></div>
+  </div>
+  {% elif name == 'heatmap' %}
+  <div class="row g-4 mb-4">
+    <div class="col-lg-6"><div class="sm-card"><div class="sm-card-title"><i class="fa-solid fa-fire"></i> Zone Visits</div>
+      <table class="table mb-0"><thead><tr><th>Zone</th><th>Visits</th><th>Share</th><th>Avg. dwell</th><th>Level</th></tr></thead><tbody>
+      {% for z in d.zones %}<tr><td><span class="legend-swatch" style="background:{{ z.color }}"></span>{{ z.name }}</td><td>{{ z.visits }}</td><td>{{ z.share }}%</td><td>{{ z.avg_dwell }}</td><td>{{ z.level.replace('-', ' ')|title }}</td></tr>{% endfor %}
+      </tbody></table></div></div>
+    <div class="col-lg-6"><div class="sm-card"><div class="sm-card-title"><i class="fa-solid fa-lightbulb"></i> Insights</div>
+      {% for i in d.insights %}<div class="note-box"><div class="fw-bold">{{ i.title }}</div><div class="small">{{ i.text }}</div></div>{% endfor %}
+    </div></div>
+  </div>
+  {% elif name == 'dwell' %}
+  <div class="row g-4 mb-4">
+    <div class="col-lg-4"><div class="sm-card"><div class="sm-card-title"><i class="fa-solid fa-clock"></i> Dwell KPIs</div>{{ kpi_table(d.kpis) }}</div></div>
+    <div class="col-lg-8"><div class="sm-card"><div class="sm-card-title"><i class="fa-solid fa-chart-column"></i> Dwell Distribution</div>
+      <div class="chart-box"><canvas data-chart="bar" data-series='{{ d.distribution|tojson }}'></canvas></div></div></div>
+    <div class="col-12"><div class="sm-card recommend-card"><div class="sm-card-title border-0"><i class="fa-solid fa-lightbulb text-success"></i> Recommendations</div>
+      {% for r in d.recommendations %}<div class="recommend"><div class="ic"><i class="fa-solid {{ r.icon }}"></i></div><div><div class="fw-semibold">{{ r.title }}</div><div class="small">{{ r.text }}</div></div></div>{% endfor %}
+    </div></div>
+  </div>
+  {% endif %}
+{%- endmacro %}
+
+{% block content %}
+<div class="sm-card mb-4">
+  <div class="d-flex flex-wrap align-items-center gap-3">
+    <div>
+      <span class="type-badge type-{{ report.report_type }}">{{ report.report_type }}</span>
+      <h2 class="h3 mt-2 mb-1">{{ report.title }}</h2>
+      <small class="text-muted">Period {{ report.period_start.strftime('%b %d, %Y') }} – {{ report.period_last_day.strftime('%b %d, %Y') }}
+        · generated {{ report.created_at.strftime('%b %d, %Y %H:%M') }} by {{ report.author.username if report.author else 'system' }}</small>
+    </div>
+    <div class="ms-auto d-flex gap-2">
+      <a class="btn btn-outline-secondary" href="{{ url_for('main.reports') }}"><i class="fa-solid fa-arrow-left me-1"></i> Back</a>
+      <button class="btn btn-outline-primary" onclick="window.print()"><i class="fa-solid fa-print me-1"></i> Print</button>
+      <a class="btn btn-gradient" href="{{ url_for('main.report_download', report_id=report.id) }}"><i class="fa-solid fa-download me-1"></i> CSV</a>
+    </div>
+  </div>
+</div>
+{% if report.report_type == 'summary' %}
+  {% for name in ['traffic', 'heatmap', 'dwell'] %}<h3 class="h5 text-uppercase text-muted mb-3">{{ name }}</h3>{{ section(name, data[name]) }}{% endfor %}
+{% else %}
+  {{ section(report.report_type, data) }}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll("canvas[data-chart]").forEach((c, i) => {
+  c.id = c.id || `rc${i}`;
+  const s = JSON.parse(c.dataset.series);
+  SM.chart(c.id, { type: c.dataset.chart, data: { labels: s.labels, datasets: [{ data: s.values, fill: true, tension: .35,
+    borderColor: "#667eea", backgroundColor: c.dataset.chart === "bar" ? "#667eea" : "rgba(102,126,234,.12)" }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
+});
+</script>
+{% endblock %}

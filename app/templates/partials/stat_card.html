@@ -1,0 +1,7 @@
+{# Usage: {% with accent=..., icon=..., value=..., label=..., delta_id=... %}{% include ... %}{% endwith %} #}
+<div class="stat-card accent-{{ accent }}">
+  <i class="fa-solid {{ icon }} icon"></i>
+  <div class="value" {% if value_id %}id="{{ value_id }}"{% endif %}>{{ value }}</div>
+  <div class="label">{{ label }}</div>
+  <div class="delta flat" {% if delta_id %}id="{{ delta_id }}"{% endif %}>{{ delta_html|default('')|safe }}</div>
+</div>

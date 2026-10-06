@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% set title = "Create account" %}
+{% block body %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-brand mb-1"><i class="fa-solid fa-store"></i> Shop Motion</div>
+    <p class="text-center text-muted mb-4">Create your account</p>
+    <form method="post" novalidate>
+      {{ form.hidden_tag() }}
+      {% for field in [form.username, form.email, form.password, form.confirm] %}
+      <div class="mb-3">
+        {{ field.label(class="form-label") }}
+        {{ field(class="form-control" ~ (" is-invalid" if field.errors else "")) }}
+        {% for e in field.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+      </div>
+      {% endfor %}
+      {{ form.submit(class="btn btn-gradient w-100 py-2 fw-bold mt-2") }}
+    </form>
+    <p class="text-center mt-4 mb-0 small">Already registered? <a href="{{ url_for('auth.login') }}">Sign in</a></p>
+  </div>
+</div>
+{% endblock %}

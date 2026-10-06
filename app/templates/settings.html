@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% macro card(icon, title, id='') -%}
+<div class="sm-card mb-4 p-0" {% if id %}id="{{ id }}"{% endif %}>
+  <div class="px-4 py-3 border-bottom fs-5 fw-semibold"><i class="fa-solid {{ icon }} me-2" style="color:#667eea"></i>{{ title }}</div>
+  <div class="p-4">{{ caller() }}</div>
+</div>
+{%- endmacro %}
+
+{% block content %}
+<form id="settingsForm" class="mx-auto" style="max-width: 1100px">
+  {% call card('fa-eye', 'Detection Settings') %}
+  <div class="row g-4">
+    <div class="col-md-6">
+      <label class="form-label" for="conf">Detection Confidence Threshold</label>
+      <input type="range" class="form-range" min="0.1" max="1" step="0.05" id="conf" name="detection_confidence" value="{{ settings.detection_confidence }}">
+      <div class="form-text">Minimum confidence level for person detection (0.1 - 1.0)</div>
+      <span class="badge mt-2" style="background:#764ba2">Current: <span id="confValue">{{ settings.detection_confidence }}</span></span>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Tracking Options</label>
+      <div class="form-check"><input class="form-check-input" type="checkbox" id="track" name="enable_tracking" {{ 'checked' if settings.enable_tracking == 'true' }}>
+        <label class="form-check-label" for="track">Enable Person Tracking</label></div>
+      <div class="form-text">Track identities across frames (required for dwell time and zone visits)</div>
+      <label class="form-label mt-3" for="crowd">Crowd alert threshold (people in view)</label>
+      <input type="number" class="form-control" id="crowd" name="crowd_threshold" min="1" value="{{ settings.crowd_threshold }}">
+    </div>
+  </div>
+  {% endcall %}
+
+  {% call card('fa-video', 'Recording Settings') %}
+  <div class="row g-4">
+    <div class="col-md-6">
+      <div class="form-check"><input class="form-check-input" type="checkbox" id="rec" name="enable_recording" {{ 'checked' if settings.enable_recording == 'true' }}>
+        <label class="form-check-label" for="rec">Enable Video Recording</label></div>
+      <div class="form-text">Save video recordings from cameras</div>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label" for="recPath">Recording Path</label>
+      <input class="form-control" id="recPath" name="recording_path" value="{{ settings.recording_path }}">
+      <div class="form-text">Directory path for storing recordings</div>
+    </div>
+  </div>
+  {% endcall %}
+
+  {% call card('fa-bell', 'Alert Settings', 'alerts') %}
+  <div class="row g-4">
+    <div class="col-md-6">
+      <div class="form-check"><input class="form-check-input" type="checkbox" id="mail" name="enable_email_alerts" {{ 'checked' if settings.enable_email_alerts == 'true' }}>
+        <label class="form-check-label" for="mail">Enable Email Alerts</label></div>
+      <div class="form-text">Send email notifications for important events</div>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label" for="mailTo">Alert Email</label>
+      <input type="email" class="form-control" id="mailTo" name="alert_email" value="{{ settings.alert_email }}">
+      <div class="form-text">Email address for receiving alerts</div>
+    </div>
+  </div>
+  {% endcall %}
+
+  {% call card('fa-database', 'Data Management') %}
+  <div class="row g-4">
+    <div class="col-md-6">
+      <label class="form-label" for="ret">Data Retention (Days)</label>
+      <input type="number" class="form-control" id="ret" name="data_retention_days" min="1" max="3650" value="{{ settings.data_retention_days }}">
+      <div class="form-text">Number of days to keep analytics data</div>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label d-block">Database Actions</label>
+      <button type="button" class="btn btn-outline-warning me-2" id="cleanupBtn"><i class="fa-solid fa-broom me-1"></i> Cleanup Old Data</button>
+      <a class="btn btn-outline-info" href="{{ url_for('api.export_data') }}"><i class="fa-solid fa-download me-1"></i> Export Data</a>
+    </div>
+  </div>
+  {% endcall %}
+
+  {% call card('fa-circle-info', 'System Information') %}
+  <div class="row g-4">
+    <div class="col-6"><div class="text-muted">OpenCV Version</div><div class="fw-bold">{{ info.opencv }}</div></div>
+    <div class="col-6"><div class="text-muted">Python Version</div><div class="fw-bold">{{ info.python }}</div></div>
+    <div class="col-6"><div class="text-muted">Total Cameras</div><div class="fw-bold">{{ info.cameras }}</div></div>
+    <div class="col-6"><div class="text-muted">Active Zones</div><div class="fw-bold">{{ info.zones }}</div></div>
+  </div>
+  {% endcall %}
+
+  <div class="d-flex justify-content-end gap-2 mb-2">
+    <button class="btn btn-gradient btn-lg" type="submit"><i class="fa-solid fa-floppy-disk me-1"></i> Save Settings</button>
+    <button class="btn btn-outline-secondary btn-lg" type="button" id="resetBtn"><i class="fa-solid fa-rotate-left me-1"></i> Reset to Defaults</button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const { api, toast } = SM;
+  const form = document.getElementById("settingsForm");
+  const conf = document.getElementById("conf");
+  conf.addEventListener("input", () => document.getElementById("confValue").textContent = Number(conf.value).toFixed(2));
+
+  form.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const body = {};
+    form.querySelectorAll("input[name]").forEach((el) => body[el.name] = el.type === "checkbox" ? el.checked : el.value);
+    try {
+      await api("/api/system/settings", { method: "POST", body });
+      toast("Settings saved. Restart running cameras to apply detection changes.", "success");
+    } catch (e) { toast(e.message, "danger"); }
+  });
+
+  document.getElementById("resetBtn").addEventListener("click", async () => {
+    if (!confirm("Reset all settings to their defaults?")) return;
+    await api("/api/system/settings/reset", { method: "POST" });
+    location.reload();
+  });
+
+  document.getElementById("cleanupBtn").addEventListener("click", async () => {
+    if (!confirm("Delete analytics data older than the retention period?")) return;
+    const r = await api("/api/system/cleanup", { method: "POST" });
+    toast(`Removed ${r.removed.visits} visits, ${r.removed.samples} samples, ${r.removed.heatmap_cells} heatmap cells`, "success");
+  });
+})();
+</script>
+{% endblock %}

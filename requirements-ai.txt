@@ -1,0 +1,6 @@
+# Full AI pipeline: YOLOv8 person detection + DeepSORT tracking.
+# Install on top of requirements.txt:  pip install -r requirements-ai.txt
+# For GPU acceleration install the CUDA build of PyTorch first: https://pytorch.org/get-started/locally/
+-r requirements.txt
+ultralytics>=8.1
+deep-sort-realtime>=1.3.2

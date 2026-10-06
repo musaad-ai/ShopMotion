@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% set title = "Sign in" %}
+{% block body %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-brand mb-1"><i class="fa-solid fa-store"></i> Shop Motion</div>
+    <p class="text-center text-muted mb-4">Privacy-first in-store analytics</p>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}<div class="alert alert-{{ category }} py-2">{{ message }}</div>{% endfor %}
+    {% endwith %}
+    <form method="post" novalidate>
+      {{ form.hidden_tag() }}
+      <div class="mb-3">
+        {{ form.username.label(class="form-label") }}
+        <div class="input-group">
+          <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
+          {{ form.username(class="form-control", autofocus=true, autocomplete="username") }}
+        </div>
+      </div>
+      <div class="mb-3">
+        {{ form.password.label(class="form-label") }}
+        <div class="input-group">
+          <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+          {{ form.password(class="form-control", autocomplete="current-password") }}
+        </div>
+      </div>
+      <div class="form-check mb-4">{{ form.remember(class="form-check-input") }} {{ form.remember.label(class="form-check-label") }}</div>
+      {{ form.submit(class="btn btn-gradient w-100 py-2 fw-bold") }}
+    </form>
+    {% if allow_registration %}
+    <p class="text-center mt-4 mb-0 small">No account? <a href="{{ url_for('auth.register') }}">Create one</a></p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

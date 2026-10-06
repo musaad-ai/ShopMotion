@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="sm-card mb-4">
+  <div class="d-flex flex-wrap align-items-center gap-3">
+    <div>
+      <h2 class="h3 mb-0">Generated Reports</h2>
+      <small class="text-muted"><span id="reportCount">{{ reports|length }}</span> total reports</small>
+    </div>
+    <div class="ms-auto d-flex gap-2">
+      <select class="form-select" id="typeFilter" style="min-width: 200px">
+        <option value="">All Types</option>
+        {% for key, label in report_types.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+      </select>
+      <button class="btn btn-gradient text-nowrap" data-bs-toggle="modal" data-bs-target="#generateModal" id="generate">
+        <i class="fa-solid fa-plus me-1"></i> Generate New Report</button>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4" id="reportGrid">
+  {% for r in reports %}
+  <div class="col-md-6 col-xl-4" data-type="{{ r.report_type }}" data-id="{{ r.id }}">
+    <div class="report-card">
+      <span class="type-badge type-{{ r.report_type }}">{{ r.report_type }}</span>
+      <h3 class="h5 mt-3 mb-1">{{ r.title }}</h3>
+      <div class="small text-muted mb-3">
+        <i class="fa-solid fa-calendar me-1"></i>{{ r.created_at.strftime('%b %d, %Y') }}
+        <i class="fa-solid fa-user ms-3 me-1"></i>{{ r.author.username if r.author else 'system' }}
+      </div>
+      <span class="badge bg-success-subtle text-success mb-3"><i class="fa-solid fa-check me-1"></i>{{ r.status|title }}</span>
+      <p class="small text-muted">
+        {{ r.period_start.strftime('%b %d') }} – {{ r.period_last_day.strftime('%b %d, %Y') }} ·
+        Comprehensive analysis of store performance metrics including traffic patterns, zone activity and customer engagement.
+      </p>
+      <div class="d-flex gap-2">
+        <a class="btn btn-gradient flex-fill" href="{{ url_for('main.report_view', report_id=r.id) }}"><i class="fa-solid fa-eye me-1"></i> View</a>
+        <a class="btn btn-outline-primary flex-fill" href="{{ url_for('main.report_download', report_id=r.id) }}"><i class="fa-solid fa-download me-1"></i> Download</a>
+        <button class="btn btn-outline-secondary" data-share="{{ url_for('main.report_view', report_id=r.id, _external=True) }}" title="Copy link"><i class="fa-solid fa-share-nodes"></i></button>
+        {% if current_user.is_admin or r.created_by == current_user.id %}
+        <button class="btn btn-outline-danger" data-delete="{{ r.id }}" title="Delete"><i class="fa-solid fa-trash"></i></button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12"><div class="sm-card empty-state">No reports yet — generate your first one.</div></div>
+  {% endfor %}
+</div>
+
+<div class="modal fade" id="generateModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form class="modal-content" id="generateForm">
+      <div class="modal-header"><h5 class="modal-title">Generate Report</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <label class="form-label">Report type</label>
+        <select class="form-select mb-3" name="type">
+          {% for key, label in report_types.items() %}<option value="{{ key }}" {{ 'selected' if key == 'summary' }}>{{ label }}</option>{% endfor %}
+        </select>
+        <label class="form-label">Period</label>
+        <select class="form-select mb-3" name="period" id="periodSelect">
+          <option value="today">Today</option><option value="week" selected>Last 7 days</option>
+          <option value="month">Last 30 days</option><option value="year">Last 12 months</option><option value="custom">Custom range</option>
+        </select>
+        <div class="row g-2 d-none" id="customRange">
+          <div class="col"><input type="date" class="form-control" name="start"></div>
+          <div class="col"><input type="date" class="form-control" name="end"></div>
+        </div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-gradient" type="submit"><i class="fa-solid fa-gears me-1"></i> Generate</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const { api, toast } = SM;
+  const grid = document.getElementById("reportGrid");
+
+  document.getElementById("typeFilter").addEventListener("change", (e) => {
+    grid.querySelectorAll("[data-type]").forEach((el) => el.hidden = e.target.value && el.dataset.type !== e.target.value);
+  });
+  document.getElementById("periodSelect").addEventListener("change", (e) =>
+    document.getElementById("customRange").classList.toggle("d-none", e.target.value !== "custom"));
+  if (location.hash === "#generate") new bootstrap.Modal("#generateModal").show();
+
+  document.getElementById("generateForm").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    const body = { type: f.get("type"), period: f.get("period") };
+    if (body.period === "custom") { body.start = f.get("start"); body.end = f.get("end"); body.period = "custom"; }
+    try {
+      const r = await api("/api/reports", { method: "POST", body });
+      location.href = `/reports/${r.id}`;
+    } catch (e) { toast(e.message, "danger"); }
+  });
+
+  grid.addEventListener("click", async (ev) => {
+    const share = ev.target.closest("[data-share]");
+    if (share) {
+      await navigator.clipboard.writeText(share.dataset.share).catch(() => {});
+      return toast("Report link copied to clipboard", "success");
+    }
+    const del = ev.target.closest("[data-delete]");
+    if (del && confirm("Delete this report?")) {
+      try {
+        await api(`/api/reports/${del.dataset.delete}`, { method: "DELETE" });
+        del.closest("[data-id]").remove();
+        const c = document.getElementById("reportCount");
+        c.textContent = Number(c.textContent) - 1;
+      } catch (e) { toast(e.message, "danger"); }
+    }
+  });
+})();
+</script>
+{% endblock %}

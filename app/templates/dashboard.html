@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row g-4 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    {% with accent="primary", icon="fa-users", value=summary.current_visitors, value_id="kpiVisitors", label="Current Visitors", delta_id="kpiVisitorsDelta" %}{% include "partials/stat_card.html" %}{% endwith %}
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    {% with accent="success", icon="fa-chart-line", value=summary.today_traffic, value_id="kpiTraffic", label="Today's Traffic", delta_id="kpiTrafficDelta" %}{% include "partials/stat_card.html" %}{% endwith %}
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    {% with accent="warning", icon="fa-clock", value=summary.avg_dwell, value_id="kpiDwell", label="Avg. Dwell Time", delta_id="kpiDwellDelta" %}{% include "partials/stat_card.html" %}{% endwith %}
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    {% with accent="info", icon="fa-fire", value=summary.hot_zones, value_id="kpiHot", label="Hot Zones", delta_id="kpiHotDelta" %}{% include "partials/stat_card.html" %}{% endwith %}
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-xl-8">
+    <div class="sm-card">
+      <div class="sm-card-title"><i class="fa-solid fa-map"></i> Live Store Map
+        <span class="badge bg-success ms-1" id="mapBadge"><i class="fa-solid fa-circle fa-2xs"></i> Live</span>
+      </div>
+      <div class="store-map" id="storeMap"></div>
+      <p class="small text-muted mt-2 mb-0">Dots show visitors currently in each zone (updates every 10 seconds).</p>
+    </div>
+  </div>
+  <div class="col-xl-4 d-flex flex-column gap-4">
+    <div class="sm-card">
+      <div class="sm-card-title"><i class="fa-solid fa-bolt"></i> Quick Actions</div>
+      <a class="quick-action" href="{{ url_for('main.live') }}"><i class="fa-solid fa-video"></i> View Live Cameras</a>
+      <a class="quick-action" href="{{ url_for('main.reports') }}#generate"><i class="fa-solid fa-file-circle-plus"></i> Generate Report</a>
+      {% if current_user.is_admin %}
+      <a class="quick-action" href="{{ url_for('main.settings') }}"><i class="fa-solid fa-gear"></i> System Settings</a>
+      <a class="quick-action mb-0" href="{{ url_for('main.settings') }}#alerts"><i class="fa-solid fa-bell"></i> Alert Settings</a>
+      {% endif %}
+    </div>
+    <div class="sm-card">
+      <div class="sm-card-title"><i class="fa-solid fa-triangle-exclamation"></i> Active Alerts</div>
+      {% for a in alerts %}
+      <div class="alert-item {{ a.level }}">
+        <i class="fa-solid {{ a.icon }} {{ a.level }}-i fa-lg"></i>
+        <div><div class="title">{{ a.title }}</div><small data-ago="{{ a.created_at.isoformat() }}"></small></div>
+      </div>
+      {% else %}
+      <div class="empty-state py-3"><i class="fa-solid fa-circle-check me-1"></i> No active alerts</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-7">
+    <div class="sm-card">
+      <div class="sm-card-title">Traffic Trends
+        <div class="btn-group btn-group-sm period-group ms-2" id="trendPeriod">
+          <button class="btn btn-outline-primary active" data-period="today">Today</button>
+          <button class="btn btn-outline-primary" data-period="week">Week</button>
+          <button class="btn btn-outline-primary" data-period="month">Month</button>
+        </div>
+      </div>
+      <div class="chart-box"><canvas id="trendChart"></canvas></div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="sm-card">
+      <div class="sm-card-title">Zone Activity <span class="badge bg-primary ms-1">Last 24 Hours</span></div>
+      <div class="chart-box"><canvas id="zoneChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<div class="sm-card">
+  <div class="sm-card-title"><i class="fa-solid fa-clock-rotate-left"></i> Recent Activity</div>
+  <div style="max-height: 380px; overflow-y: auto;">
+    {% for item in activity %}
+    <div class="activity-item">
+      <div class="activity-icon {{ item.kind }}"><i class="fa-solid {{ item.icon }}"></i></div>
+      <div>
+        <div class="fw-bold">{{ item.title }}</div>
+        <div class="text-muted">{{ item.message }}</div>
+        <small class="text-muted" data-ago="{{ item.created_at.isoformat() }}"></small>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">No activity yet.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.DASHBOARD = {
+    summary: {{ summary|tojson }},
+    zones: {{ zones|tojson }},
+  };
+</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

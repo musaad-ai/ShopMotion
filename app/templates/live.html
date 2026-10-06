@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row g-4 mb-4">
+  <div class="col-xl-8">
+    <div class="sm-card">
+      <div class="sm-card-title"><i class="fa-solid fa-video"></i> Camera Feed
+        <div class="actions align-items-center">
+          {% if cameras|length > 1 %}
+          <select class="form-select form-select-sm" id="cameraSelect" style="width:auto">
+            {% for c in cameras %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+          </select>
+          {% endif %}
+          <span class="status-pill offline" id="statusPill"><i class="fa-solid fa-circle fa-2xs"></i> Offline</span>
+        </div>
+      </div>
+      {% if cameras %}
+      <div class="feed" id="feed" data-camera="{{ cameras[0].id }}">
+        <div class="placeholder-msg" id="feedPlaceholder">
+          <i class="fa-solid fa-video-slash fa-4x mb-3 opacity-50"></i>
+          <div class="fs-5">Camera feed not started</div>
+          <div class="small mt-2 opacity-75">Click "Start Camera" to begin monitoring</div>
+        </div>
+      </div>
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        <button class="btn btn-success" id="startBtn"><i class="fa-solid fa-play me-1"></i> Start Camera</button>
+        <button class="btn btn-danger" id="stopBtn" disabled><i class="fa-solid fa-stop me-1"></i> Stop Camera</button>
+        <button class="btn btn-info text-white" id="snapBtn" disabled><i class="fa-solid fa-camera me-1"></i> Take Snapshot</button>
+        {% if current_user.is_admin %}
+        <a class="btn btn-warning text-white" href="{{ url_for('main.cameras') }}"><i class="fa-solid fa-gear me-1"></i> Settings</a>
+        {% endif %}
+      </div>
+      <div class="small text-muted mt-2" id="pipelineInfo"></div>
+      {% else %}
+      <div class="empty-state">No cameras configured.
+        {% if current_user.is_admin %}<a href="{{ url_for('main.cameras') }}">Add a camera</a>{% endif %}</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-xl-4 d-flex flex-column gap-4">
+    <div class="sm-card">
+      <div class="sm-card-title"><i class="fa-solid fa-chart-line"></i> Live Statistics</div>
+      <div class="stat-row"><span>Current Visitors</span><span class="v" id="sVisitors">0</span></div>
+      <div class="stat-row"><span>Total Detected</span><span class="v" id="sTotal">0</span></div>
+      <div class="stat-row"><span>Peak Count</span><span class="v" id="sPeak">0</span></div>
+      <div class="stat-row"><span>Avg. Dwell Time</span><span class="v" id="sDwell">0s</span></div>
+    </div>
+    <div class="sm-card">
+      <div class="sm-card-title"><i class="fa-solid fa-clock-rotate-left"></i> Detection Log</div>
+      <div class="log-list" id="logList"><div class="empty-state py-3">No detections yet.</div></div>
+    </div>
+  </div>
+</div>
+<div class="sm-card">
+  <div class="sm-card-title"><i class="fa-solid fa-triangle-exclamation"></i> Active Alerts</div>
+  <div id="liveAlerts"><div class="empty-state py-2"><i class="fa-solid fa-circle-check me-1"></i> No active alerts</div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/live.js') }}"></script>{% endblock %}

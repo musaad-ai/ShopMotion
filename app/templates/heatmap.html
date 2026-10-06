@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="sm-card mb-4 py-3">
+  <div class="d-flex flex-wrap align-items-center gap-3">
+    <span class="fw-semibold">Time Period:</span>
+    <div class="d-flex flex-wrap gap-2 period-group" id="periodGroup">
+      <button class="btn btn-outline-primary active" data-period="today">Today</button>
+      <button class="btn btn-outline-primary" data-period="week">This Week</button>
+      <button class="btn btn-outline-primary" data-period="month">This Month</button>
+    </div>
+    <span class="fw-semibold ms-lg-3">View Mode:</span>
+    <select class="form-select" id="modeSelect" style="width:auto">
+      <option value="visits">Visit Count</option>
+      <option value="dwell">Average Dwell (min)</option>
+    </select>
+    <div class="form-check form-switch ms-lg-auto">
+      <input class="form-check-input" type="checkbox" id="densityToggle" checked>
+      <label class="form-check-label" for="densityToggle">Show presence density</label>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4" id="zoneCards"></div>
+
+<div class="sm-card mb-4">
+  <div class="sm-card-title"><i class="fa-solid fa-fire"></i> Store Activity Heatmap</div>
+  <div class="store-map" id="heatMap" style="aspect-ratio: 16 / 8.5">
+    <canvas class="heat-layer" id="heatCanvas"></canvas>
+    <div class="entrance-tag"><i class="fa-solid fa-door-open me-1"></i> Entrance</div>
+  </div>
+  <div class="d-flex flex-wrap justify-content-center gap-4 mt-3 p-3 bg-light rounded" id="legend"></div>
+</div>
+
+<div class="sm-card">
+  <div class="sm-card-title"><i class="fa-solid fa-lightbulb"></i> Heatmap Insights</div>
+  <div id="insights"></div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/heatmap.js') }}"></script>{% endblock %}

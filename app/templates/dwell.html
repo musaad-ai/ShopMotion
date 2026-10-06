@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="sm-card mb-4 py-3">
+  <div class="d-flex flex-wrap align-items-center gap-3">
+    <span class="fw-semibold">Time Period:</span>
+    <div class="d-flex flex-wrap gap-2 period-group" id="periodGroup">
+      <button class="btn btn-outline-primary" data-period="today">Today</button>
+      <button class="btn btn-outline-primary active" data-period="week">This Week</button>
+      <button class="btn btn-outline-primary" data-period="month">This Month</button>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    {% with accent="primary", icon="fa-clock", value="—", value_id="kAvg", label="Average Dwell Time", delta_id="kAvgDelta" %}{% include "partials/stat_card.html" %}{% endwith %}
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    {% with accent="success", icon="fa-hourglass-half", value="—", value_id="kMedian", label="Median Dwell Time", delta_id="kMedianDelta" %}{% include "partials/stat_card.html" %}{% endwith %}
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    {% with accent="warning", icon="fa-fire", value="—", value_id="kLongest", label="Longest Dwell Zone", delta_id="kLongestSub" %}{% include "partials/stat_card.html" %}{% endwith %}
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    {% with accent="info", icon="fa-bolt", value="—", value_id="kShortest", label="Shortest Dwell Zone", delta_id="kShortestSub" %}{% include "partials/stat_card.html" %}{% endwith %}
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-xl-8">
+    <div class="sm-card">
+      <div class="sm-card-title"><i class="fa-solid fa-chart-column"></i> Dwell Time Distribution</div>
+      <div class="chart-box"><canvas id="distChart"></canvas></div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="sm-card">
+      <div class="sm-card-title"><i class="fa-solid fa-layer-group"></i> Visits by Zone</div>
+      <div class="chart-box"><canvas id="zoneChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<div class="sm-card mb-4">
+  <div class="sm-card-title"><i class="fa-solid fa-chart-line"></i> Dwell Time Trends <span class="small text-muted ms-2">last 7 days</span></div>
+  <div class="chart-box"><canvas id="trendChart"></canvas></div>
+</div>
+
+<div class="sm-card mb-4">
+  <div class="sm-card-title"><i class="fa-solid fa-scale-balanced"></i> Zone-by-Zone Comparison</div>
+  <div class="row g-3" id="zoneCompare"></div>
+</div>
+
+<div class="sm-card recommend-card">
+  <div class="sm-card-title border-0"><i class="fa-solid fa-lightbulb text-success"></i> Optimization Recommendations</div>
+  <div id="recs"></div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/dwell.js') }}"></script>{% endblock %}

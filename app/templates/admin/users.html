@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="sm-card">
+  <div class="sm-card-title"><i class="fa-solid fa-users-gear"></i> User Accounts</div>
+  {% for u in users %}
+  <form method="post" id="user-{{ u.id }}" action="{{ url_for('main.update_user', user_id=u.id) }}">{{ form.csrf_token }}</form>
+  {% endfor %}
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead class="table-light"><tr><th>User</th><th>Email</th><th>Joined</th><th>Last login</th><th>Role</th><th>Active</th><th></th></tr></thead>
+      <tbody>
+      {% for u in users %}
+        <tr>
+          <td class="fw-bold">{{ u.username }}{% if u.id == current_user.id %} <span class="badge bg-light text-dark">you</span>{% endif %}</td>
+          <td>{{ u.email }}</td>
+          <td>{{ u.created_at.strftime('%Y-%m-%d') }}</td>
+          <td>{{ u.last_login.strftime('%Y-%m-%d %H:%M') if u.last_login else '—' }}</td>
+          <td><select name="role" form="user-{{ u.id }}" class="form-select form-select-sm" style="width:auto">
+            <option value="viewer" {{ 'selected' if u.role == 'viewer' }}>Viewer</option>
+            <option value="admin" {{ 'selected' if u.role == 'admin' }}>Admin</option></select></td>
+          <td><input type="checkbox" class="form-check-input" name="active" value="y" form="user-{{ u.id }}" {{ 'checked' if u.active }}></td>
+          <td><button class="btn btn-sm btn-outline-primary" form="user-{{ u.id }}">Save</button></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="small text-muted mb-0"><strong>Admin</strong> can configure cameras, store layout, settings and users.
+    <strong>Viewer</strong> can see dashboards, live monitoring and reports.</p>
+</div>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% set title = "Error " ~ code %}
+{% block body %}
+<div class="auth-page">
+  <div class="auth-card text-center">
+    <div class="display-3 fw-bold" style="color:#667eea">{{ code }}</div>
+    <p class="text-muted my-3">{{ message }}</p>
+    <a class="btn btn-gradient" href="{{ url_for('main.dashboard') }}">Back to dashboard</a>
+  </div>
+</div>
+{% endblock %}

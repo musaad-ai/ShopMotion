@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex flex-wrap align-items-center gap-3 mb-4">
+  <div>
+    <h2 class="h3 mb-0">Camera Management</h2>
+    <span class="text-muted">Configure USB cameras, video files or RTSP streams</span>
+  </div>
+  <div class="ms-auto d-flex gap-2">
+    <button class="btn btn-outline-primary" id="detectBtn"><i class="fa-solid fa-magnifying-glass me-1"></i> Detect Cameras</button>
+    <button class="btn btn-gradient" id="addBtn"><i class="fa-solid fa-plus me-1"></i> Add Camera</button>
+  </div>
+</div>
+<div id="detectResult"></div>
+
+<div class="row g-4" id="cameraGrid">
+  {% for c in cameras %}
+  <div class="col-md-6 col-xl-4" data-camera='{{ c.to_dict()|tojson }}'>
+    <div class="camera-card">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div><h3 class="h5 mb-0">{{ c.name }}</h3><small class="text-muted"><i class="fa-solid fa-location-dot me-1"></i>{{ c.location or '—' }}</small></div>
+        <span class="status-pill offline" data-status="{{ c.id }}"><i class="fa-solid fa-circle fa-2xs"></i> Offline</span>
+      </div>
+      <div class="camera-preview mb-3" data-preview="{{ c.id }}"><i class="fa-solid fa-video"></i></div>
+      <div class="row g-3 mb-3">
+        <div class="col-6"><div class="kv-label">Source</div><div class="kv-value text-truncate" title="{{ c.source }}">{{ c.source }}</div></div>
+        <div class="col-6"><div class="kv-label">Resolution</div><div class="kv-value">{{ c.width }}x{{ c.height }}</div></div>
+        <div class="col-6"><div class="kv-label">Frame rate</div><div class="kv-value">{{ c.fps }} FPS</div></div>
+        <div class="col-6"><div class="kv-label">Status</div><span class="badge {{ 'bg-success' if c.enabled else 'bg-secondary' }}">{{ 'Enabled' if c.enabled else 'Disabled' }}</span></div>
+      </div>
+      <div class="d-flex gap-2">
+        <a class="btn btn-outline-primary flex-fill" href="{{ url_for('main.live') }}"><i class="fa-solid fa-eye me-1"></i> Preview</a>
+        <button class="btn btn-outline-secondary flex-fill" data-edit><i class="fa-solid fa-pen-to-square me-1"></i> Edit</button>
+        <button class="btn btn-outline-info flex-fill" data-test="{{ c.id }}"><i class="fa-solid fa-check me-1"></i> Test</button>
+        <button class="btn btn-outline-danger" data-delete="{{ c.id }}" title="Delete"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12"><div class="sm-card empty-state">No cameras yet. Use “Detect Cameras” or “Add Camera”.</div></div>
+  {% endfor %}
+</div>
+
+<div class="modal fade" id="cameraModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form class="modal-content" id="cameraForm">
+      <div class="modal-header"><h5 class="modal-title" id="cameraModalTitle">Add Camera</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <input type="hidden" name="id">
+        <div class="mb-3"><label class="form-label">Name</label><input class="form-control" name="name" required maxlength="64"></div>
+        <div class="mb-3"><label class="form-label">Location / zone</label><input class="form-control" name="location" maxlength="64"></div>
+        <div class="mb-3"><label class="form-label">Source</label><input class="form-control" name="source" required value="0">
+          <div class="form-text">Device index (0, 1…), a video file path, or an RTSP/HTTP URL.</div></div>
+        <div class="row g-2 mb-3">
+          <div class="col"><label class="form-label">Resolution</label>
+            <select class="form-select" name="resolution"><option>640x480</option><option selected>1280x720</option><option>1920x1080</option></select></div>
+          <div class="col"><label class="form-label">FPS</label><input type="number" class="form-control" name="fps" value="30" min="1" max="120"></div>
+        </div>
+        <div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="enabled" id="camEnabled" checked><label class="form-check-label" for="camEnabled">Enabled</label></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-gradient" type="submit">Save</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const { api, toast, escapeHtml } = SM;
+  const modal = new bootstrap.Modal("#cameraModal");
+  const form = document.getElementById("cameraForm");
+
+  function openForm(cam) {
+    form.reset();
+    document.getElementById("cameraModalTitle").textContent = cam ? "Edit Camera" : "Add Camera";
+    form.id.value = cam?.id || "";
+    form.name.value = cam?.name || "";
+    form.location.value = cam?.location || "";
+    form.source.value = cam?.source ?? "0";
+    form.resolution.value = cam?.resolution || "1280x720";
+    form.fps.value = cam?.fps || 30;
+    form.enabled.checked = cam ? cam.enabled : true;
+    modal.show();
+  }
+
+  document.getElementById("addBtn").addEventListener("click", () => openForm(null));
+  form.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const body = { name: form.name.value, location: form.location.value, source: form.source.value,
+      resolution: form.resolution.value, fps: Number(form.fps.value), enabled: form.enabled.checked };
+    try {
+      const id = form.id.value;
+      await api(id ? `/api/system/cameras/${id}` : "/api/system/cameras", { method: id ? "PUT" : "POST", body });
+      location.reload();
+    } catch (e) { toast(e.message, "danger"); }
+  });
+
+  document.getElementById("cameraGrid").addEventListener("click", async (ev) => {
+    const card = ev.target.closest("[data-camera]");
+    if (!card) return;
+    const cam = JSON.parse(card.dataset.camera);
+    if (ev.target.closest("[data-edit]")) return openForm(cam);
+    const test = ev.target.closest("[data-test]");
+    if (test) {
+      test.disabled = true;
+      try {
+        const r = await api(`/api/system/cameras/${cam.id}/test`, { method: "POST" });
+        toast(r.message, r.ok ? "success" : "danger");
+      } finally { test.disabled = false; }
+    }
+    if (ev.target.closest("[data-delete]") && confirm(`Delete camera "${cam.name}"?`)) {
+      await api(`/api/system/cameras/${cam.id}`, { method: "DELETE" });
+      card.remove();
+    }
+  });
+
+  document.getElementById("detectBtn").addEventListener("click", async (ev) => {
+    const btn = ev.currentTarget;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Scanning…`;
+    try {
+      const found = await api("/api/system/cameras/detect", { method: "POST" });
+      document.getElementById("detectResult").innerHTML = `<div class="alert alert-info">${found.length
+        ? "Found devices: " + found.map((f) => `<strong>#${f.index}</strong>${f.in_use ? " (configured)" : ` <a href="#" data-add-index="${f.index}">add</a>`}`).join(", ")
+        : "No local cameras detected."}</div>`;
+    } catch (e) { toast(e.message, "danger"); }
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fa-solid fa-magnifying-glass me-1"></i> Detect Cameras`;
+  });
+  document.getElementById("detectResult").addEventListener("click", (ev) => {
+    const a = ev.target.closest("[data-add-index]");
+    if (!a) return;
+    ev.preventDefault();
+    openForm({ name: `Camera ${a.dataset.addIndex}`, source: a.dataset.addIndex, enabled: true });
+  });
+
+  // Live status + stream thumbnail for running cameras
+  api("/api/system/cameras").then((cams) => cams.forEach((c) => {
+    if (!c.running) return;
+    const pill = document.querySelector(`[data-status="${c.id}"]`);
+    if (pill) { pill.className = "status-pill online"; pill.innerHTML = `<i class="fa-solid fa-circle fa-2xs"></i> Online`; }
+    const prev = document.querySelector(`[data-preview="${c.id}"]`);
+    if (prev) prev.innerHTML = `<img alt="Live preview" src="/api/live/stream/${c.id}">`;
+  }));
+})();
+</script>
+{% endblock %}
